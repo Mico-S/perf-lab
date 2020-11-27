@@ -1,0 +1,45 @@
+Changes done to program:
+
+1. Went into Filter.cpp and made all functions that only required 1 line of code become
+   inline functions inside of Filter.h. This reduces the number of calls required by Filter.h to do
+   to Filter.cpp.
+
+2. In FilterMain.cpp under the applyFilter() method I stored the calls made to "filter -> getSize()" inside of the
+   two innermost for loops inside of a local variable "int getSizeVar". I then replaced all occurences of "filter -> getSize()"
+   with "getSizeVar" as "filter -> getSize()" always returns a constant and the value does not change. This is an example of
+   code motion.
+   
+3. Another piece of code motion I performed was moving the calculations of "(input -> width) - 1" and "(input -> height) - 1" into their
+   own local variables. This allows the first 2 for loops to not calculate this everytime and the result of these 2 calculations is
+   always the same.
+   
+4. I created an accumulator variable "outputColorArrElement" that accumulates all the operations needed to be done to a specific pixel 
+   then applys those changes to the specfic output pixel. This reduces the number of times array access (memory access) needs to be done for
+   the output color array.
+   
+5. I swapped the "row" and "col" variables for the first 2 for loops and the "i" and "j" (row and col) variables for the inner
+   2 for loops. This accesses the arrays in row-major order like they are stored in memory and durastically increases the
+   spatial locality for the function as it does not "hop" around in memory as far anymore and accesses elements that
+   are more near each other in memory.
+   
+6. I noticed that within the inner most for loop (the 5th for loop), the function "filter -> get(i, j)" was repeatedly called during
+   ever iteration of the for loop. This get(i, j) function will constantly return the same values since it is just fetching values from
+   the 3x3 matrix of values within the given .filter file, so I stored that 3x3 matrix inside of a local array "localFilterGetArr" to
+   reduce the number of function calls to get(i, j). Shows good temporal locality since it reuses the same values from the filter 3x3 matrix.
+   
+7. I saw that the 3rd for loop that loops through "plane" (range: 0 to 2), and the variable "plane" was used to access the 0th, 1st, and 2nd row
+   in the 3-dimensional "color" array. So what I did was created 3 accumulator variables to accumulate values and do operations on each of
+   the 3 rows in the 3-dimensional "color" array, then do the same if statement comparisons on each one of the accumulator variables as before,
+   then set each of the rows in the output's "color" array to each respective row accumulator variable. This is referred to as loop unrolling,
+   as I got rid of the for loop for the variable "plane" and used seperate accumulator variables to do the work that that for loop did instead.
+
+8. Created variables "localFilterGetArrElement", "rowplusiminus1", and "colplusiminus1" to do more code motion and remove the repetition
+   of specific operations within the innermost for loop.
+   
+9. Created three more accumulator variables "outputColorArrElementPlane0colj, outputColoAr..." and made the col variable increment by
+   2 instead of 1 since these accumulators account for that skip in incrementation. Also added an if statement to say if the divisor
+   is not 1, then do the division. This can improve performance because if the divisor is 1, then there is no need to do a division operation.
+   
+10. Changed the "O0" flag in the MakeFile to "O3" for better optimization. Also added "#pragma omp parallel for" and added the "-fopenmp" flag to enable
+   parallelism within the for loops that apply the filter. Parallelism allows computations to be computed simultaneously. To do this, OpenMP does multithreading
+   and uses multiple processsors (or cores?) to execute multiple tasks (like mathematical expressions, put into multiple threads) in parallel.
